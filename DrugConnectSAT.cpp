@@ -52,7 +52,7 @@ public:
 		this->k =k;
 		this->edges =edges;
 		//initialize edgeMap
-		for(int i=0;i<m;i++){
+		for(unsigned int i=0;i<m;i++){
 			edgeMap.insert(make_pair(edgeToString(edges[i]), i));
 		}
 	}
@@ -69,7 +69,35 @@ public:
 	}
 };
 
-int main(){
+int DrugConnect::VnCtoVr(int vertex,int component){
+	return k * vertex + component + 1;
+}
+
+pair<int,int> DrugConnect::VrtoVnC(int variable){
+	
+	variable--;
+	int vertex = variable / k;
+	int component = variable % k;
+	return make_pair(vertex, component);
+}
+
+int DrugConnect::EnCtoVr(pair<int, int> edge, int component){
+	
+	char* edgeString = edgeToString(edge);
+	unsigned int edgeNum = edgeMap.find(edgeString);
+	return edgeNum * k + component + 1;
+}
+
+pair<pair<int,int>,int> DrugConnect::VrtoEnC(int variable){
+
+	int offset = k * n;
+	variable -= offset + 1;
+	int edgeNum  = variable / k;
+	int component = variable % k;
+	return make_pair(edges[edgeNum], component);
+}
+
+int main1(){
 	int n,m,k;
 	cin>>n>>m>>k;
 
@@ -85,6 +113,8 @@ int main(){
 	edges = NULL;
 	return 0;
 }
+
+
 
 char* DrugConnect::intToString(int x){
 	char* number = NULL;
@@ -164,3 +194,92 @@ void DrugConnect::addEdgeExistenceClauses(){
 	}
 }
 
+int main(){
+	
+	int n,m,k;
+	cin>>n>>m>>k;
+
+	iPair* edges = new iPair[m];
+	for(int i=0;i<m;i++){
+		cin>>edges[i].first;
+		cin>>edges[i].second;
+	}
+
+	DrugConnect agencies(n,edges,m,k);
+
+	cout << "Number of variables = " << k*(n+m) << endl;
+	cout << "Map: graph to Variable:\n";
+	int v;
+	for(int i = 0; i <n; i++){
+		for(int j = 0; j< k; j++ ){
+			v = agencies.VnCtoVr(i , j);
+			cout << v <<" "; 
+		}
+		cout << endl;
+	}
+
+	cout << "VR to VnC\n";
+	for(int i = 0; i <m; i++){
+		for(int j = 0; j< k; j++ ){
+			v = agencies.EnCtoVr(edges[i] , j);
+			cout << v <<" "; 
+		}
+		cout << endl;
+	}
+
+	cout<<"Variable to Vertex \n";
+	for(int i = 1; i <= k*n; i++){
+ 		pair<int,int> x = agencies.VrtoVnC(i); 
+		cout << i << " = " << x.first << "	"<< x.second << endl;
+	}
+
+	cout << "vari to Edge and component" << endl;
+	for(int i = k*n +1; i <= k*(n+m); i++){
+ 		pair<pair<int,int>, int> x = agencies.VrtoEnC(i); 
+		cout << i << " = " << x.first.first << "	" << x.first.second << "	"<< x.second << endl;
+	}
+
+	// Test Code
+	// int adjacency[n][n];
+	// pair<int,int> edge;
+	// for(int i = 0; i < m; i++ ){
+	// 	edge = edges[i];
+	// 	adjacency[edge.first][edge.second] = 1;
+	// 	adjacency[edge.second][edge.first] = 1;
+	// }
+
+	// ofstream out;
+	// out.open("test1.satinput", ios::app);
+	// //V^V => E
+	// for(int i =0; i < k; i++){
+
+	// 	for(int j =0 ; j < n; j++){
+
+	// 		for(int l = j+1; l < n; l++){
+
+	// 			out << "-" << VnCtoVr(j, i) << " " << "-" << VnCtoVr(l, i);
+	// 			if(adjacency[j][l] == 1)
+	// 				out << " " <<EnCtoVr(make_pair(j, l), i);
+	// 			out << endl;
+	// 		}
+	// 	}
+	// }
+	// //V ^ ~V => ~E
+	// for(int i =0; i < k; i++){
+
+	// 	for(int j =0 ; j < n; j++){
+
+	// 		for(int l = j+1; l < n; l++){
+
+	// 			out << "-" << VnCtoVr(j, i) << " " << VnCtoVr(l, i);
+	// 			if(adjacency[j][l] == 1)
+	// 				out << " -" <<EnCtoVr(make_pair(j, l), i);
+	// 			out << endl;
+	// 		}
+	// 	}
+	// }
+
+	edges = NULL;
+	//out.close();
+	return 0;
+}
