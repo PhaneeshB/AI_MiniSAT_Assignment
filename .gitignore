@@ -1,0 +1,10 @@
+
+*.out
+
+DrugConnect\.cpp
+
+test\.cpp
+
+testpart2\.cpp
+
+test1\.satinput

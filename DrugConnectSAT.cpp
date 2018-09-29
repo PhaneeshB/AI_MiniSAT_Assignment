@@ -2,6 +2,7 @@
 #include <cstring>
 #include <vector>
 #include <tr1/unordered_map>
+#include <fstream>
 using namespace std;
 
 template <class T>
@@ -83,9 +84,10 @@ pair<int,int> DrugConnect::VrtoVnC(int variable){
 
 int DrugConnect::EnCtoVr(pair<int, int> edge, int component){
 	
+	int offset = k * n;
 	char* edgeString = edgeToString(edge);
-	unsigned int edgeNum = edgeMap.find(edgeString);
-	return edgeNum * k + component + 1;
+	unsigned int edgeNum = (edgeMap.find(edgeString))->second;
+	return offset + edgeNum * k + component + 1;
 }
 
 pair<pair<int,int>,int> DrugConnect::VrtoEnC(int variable){
@@ -102,9 +104,16 @@ int main1(){
 	cin>>n>>m>>k;
 
 	iPair* edges = new iPair[m];
+	int temp;
 	for(int i=0;i<m;i++){
 		cin>>edges[i].first;
 		cin>>edges[i].second;
+		
+		if(edges[i].first > edges[i].second){
+			temp = edges[i].first;
+			edges[i].first = edges[i].second;
+			edges[i].second = temp;
+		}
 	}
 
 	DrugConnect agencies(n,edges,m,k);
@@ -196,13 +205,20 @@ void DrugConnect::addEdgeExistenceClauses(){
 
 int main(){
 	
-	int n,m,k;
+	int n, m, k, temp;
 	cin>>n>>m>>k;
 
 	iPair* edges = new iPair[m];
 	for(int i=0;i<m;i++){
 		cin>>edges[i].first;
 		cin>>edges[i].second;
+		edges[i].first--;
+		edges[i].second--;
+		if(edges[i].first > edges[i].second){
+			temp = edges[i].first;
+			edges[i].first = edges[i].second;
+			edges[i].second = temp;
+		}
 	}
 
 	DrugConnect agencies(n,edges,m,k);
@@ -218,7 +234,7 @@ int main(){
 		cout << endl;
 	}
 
-	cout << "VR to VnC\n";
+	cout << "EnC to VR\n";
 	for(int i = 0; i <m; i++){
 		for(int j = 0; j< k; j++ ){
 			v = agencies.EnCtoVr(edges[i] , j);
@@ -240,46 +256,47 @@ int main(){
 	}
 
 	// Test Code
-	// int adjacency[n][n];
-	// pair<int,int> edge;
-	// for(int i = 0; i < m; i++ ){
-	// 	edge = edges[i];
-	// 	adjacency[edge.first][edge.second] = 1;
-	// 	adjacency[edge.second][edge.first] = 1;
-	// }
+	int adjacency[n][n];
+	pair<int,int> edge;
+	for(int i = 0; i < m; i++ ){
+		edge = edges[i];
+		adjacency[edge.first][edge.second] = 1;
+		adjacency[edge.second][edge.first] = 1;
+	}
 
-	// ofstream out;
-	// out.open("test1.satinput", ios::app);
-	// //V^V => E
-	// for(int i =0; i < k; i++){
+	ofstream out;
+	out.open("test1.satinput", ios::app);
+	//V^V => E
+	for(int i =0; i < k; i++){
 
-	// 	for(int j =0 ; j < n; j++){
+		for(int j =0 ; j < n; j++){
 
-	// 		for(int l = j+1; l < n; l++){
+			for(int l = j+1; l < n; l++){
 
-	// 			out << "-" << VnCtoVr(j, i) << " " << "-" << VnCtoVr(l, i);
-	// 			if(adjacency[j][l] == 1)
-	// 				out << " " <<EnCtoVr(make_pair(j, l), i);
-	// 			out << endl;
-	// 		}
-	// 	}
-	// }
-	// //V ^ ~V => ~E
-	// for(int i =0; i < k; i++){
+				out << "-" << agencies.VnCtoVr(j, i) << " " << "-" << agencies.VnCtoVr(l, i);
+				if(adjacency[j][l] == 1)
+					out << " " << agencies.EnCtoVr(make_pair(j, l), i);
+				else out << "  No edge btwn "<< j << " & " << l; 
+				out << endl;
+			}
+		}
+	}
+	//V ^ ~V => ~E
+	for(int i =0; i < k; i++){
 
-	// 	for(int j =0 ; j < n; j++){
+		for(int j =0 ; j < n; j++){
 
-	// 		for(int l = j+1; l < n; l++){
+			for(int l = j+1; l < n; l++){
 
-	// 			out << "-" << VnCtoVr(j, i) << " " << VnCtoVr(l, i);
-	// 			if(adjacency[j][l] == 1)
-	// 				out << " -" <<EnCtoVr(make_pair(j, l), i);
-	// 			out << endl;
-	// 		}
-	// 	}
-	// }
+				out << "-" << agencies.VnCtoVr(j, i) << " " << agencies.VnCtoVr(l, i);
+				if(adjacency[j][l] == 1)
+					out << " -" << agencies.EnCtoVr(make_pair(j, l), i);
+				out << endl;
+			}
+		}
+	}
 
 	edges = NULL;
-	//out.close();
+	out.close();
 	return 0;
 }
