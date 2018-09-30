@@ -1,7 +1,7 @@
 #include "CnfConversion.cpp"
 #include <tr1/unordered_map>
 #include <fstream>
-#include<iostream>
+#include <cmath>
 
 template <class T>
 struct comparator
@@ -47,6 +47,7 @@ public:
 	void addEdgeExistenceClauses();
 	void addCliqueConstraint();
 	void addMutualExclusionConstraint();
+	void subset(int a[], int size, int num);
 
 	DrugConnect(unsigned int n,iPair* edges,unsigned int m,unsigned int k){
 		this->n = n;
@@ -269,7 +270,66 @@ void DrugConnect::addCliqueConstraint(){
 
 void DrugConnect::addMutualExclusionConstraint(){
 
+	int sub[n];
+	int compVariables1[n];
+	int compVariables2[n];
+	double po = pow(2, n);
+	int subsetIndex[n];
+	long long int count = 0;
+	ofstream out;
+	out.open("test.satinput", ios::app);
+
+	for(int comp = 0; comp < k; comp++){	
+		
+		for(int i = 0; i < n; i++)
+			compVariables1[i] = VnCtoVr(i, comp);
+		
+		cout << "***************************************COMPONENT NUMBER 1 = " << comp << endl;
+
+		for(int j = 0; j < k; j++){
+			if(comp != j){
+				for(int i = 0; i < n; i++)
+					compVariables2[i] = VnCtoVr(i, j);
+				
+				cout << "*******************COMPONENT NUMBER 2 = " << comp << endl;
+				
+				for(int i = 0; i < po; i++)
+				{
+					if(ceil(log2(po-i-1)) == floor(log2(po-i-1)))
+						continue;
+					subset(subsetIndex, n, i); // return a subset where the bits elements are 1.
+					cout << "Subset with index i = " << i << endl;
+					for(int j = 0; j < n; j++){
+						out << compVariables1[j]*subsetIndex[j] << " ";
+					}
+					for(int j = 0; j < n; j++){
+						if(subsetIndex[j] == -1){
+							out << "-" << compVariables2[j] << " ";
+						}
+					}
+					out << endl;
+					count++;
+					if(count % 1000000 == 0 )
+						cout << count << endl;
+				}
+				
+			}
+		}
+	}
+	cout << "total variables = " << k*n << "\nTotal clauses printed = " << count<< endl;
+	out.close();
 }
+
+void DrugConnect::subset(int a[], int size, int num) {
+    for(int k=0; k<size; k++){
+        //if the k-th bit is set in num
+        if( (1<<k) & num)
+            a[size-k-1] = 1;
+        else
+        	a[size-k-1] = -1;
+    }
+}
+
 int main(int argc, char* argv[]){
 
 	ifstream fin("test.graph");
@@ -293,7 +353,6 @@ int main(int argc, char* argv[]){
 	DrugConnect agencies(n,edges,m,k);
 	agencies.addVertexExistenceClauses();
 	agencies.addCliqueConstraint();
-	agencies.addMutualExclusionConstraint();
 
 	//Write cnf into a file
 	ofstream fout("test.satinput");
@@ -307,8 +366,8 @@ int main(int argc, char* argv[]){
 	//close file
 	fout.close();
 
+	agencies.addMutualExclusionConstraint();
 
-	cout << "total variables = " << k*n << "\nTotal clauses printed = " << count<< endl;
 	edges = NULL;
 	return 0;
 }

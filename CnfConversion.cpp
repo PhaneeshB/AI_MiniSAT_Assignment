@@ -11,6 +11,7 @@
  *  Created on: 07-Sep-2018
  *      Author: gaurav
  */
+#include <iostream>
 #include <stack>
 #include <cstring>
 #include <vector>
