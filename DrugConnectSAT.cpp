@@ -3,6 +3,7 @@
 #include <vector>
 #include <tr1/unordered_map>
 #include <fstream>
+#include <cmath>
 using namespace std;
 
 template <class T>
@@ -203,6 +204,26 @@ void DrugConnect::addEdgeExistenceClauses(){
 	}
 }
 
+void subset(int S[], int a[], int size, int num) {
+    for(int k=0; k<size; k++){
+        //if the k-th bit is set in num
+        if( (1<<k) & num)
+            a[k] = S[k];
+        else
+        	a[k] = -1 * S[k];
+    }
+}
+
+void subset(int a[], int size, int num) {
+    for(int k = 0; k < size; k++){
+        //if the k-th bit is set in num
+        if( (1<<k) & num)
+            a[size-k-1] = 1;
+        else
+        	a[size-k-1] = -1;
+    }
+}
+
 int main(){
 	
 	int n, m, k, temp;
@@ -255,6 +276,8 @@ int main(){
 		cout << i << " = " << x.first.first << "	" << x.first.second << "	"<< x.second << endl;
 	}
 
+	cout << "DONE!"<<endl;
+
 	// Test Code
 	int adjacency[n][n];
 	pair<int,int> edge;
@@ -263,39 +286,95 @@ int main(){
 		adjacency[edge.first][edge.second] = 1;
 		adjacency[edge.second][edge.first] = 1;
 	}
-
+	cout << "ADJ DONE!"<<endl;
 	ofstream out;
 	out.open("test1.satinput", ios::app);
-	//V^V => E
-	for(int i =0; i < k; i++){
+	// //V^V => E
+	// for(int i = 0; i < k; i++){
 
-		for(int j =0 ; j < n; j++){
+	// 	for(int j =0 ; j < n; j++){
 
-			for(int l = j+1; l < n; l++){
+	// 		for(int l = j+1; l < n; l++){
 
-				out << "-" << agencies.VnCtoVr(j, i) << " " << "-" << agencies.VnCtoVr(l, i);
-				if(adjacency[j][l] == 1)
-					out << " " << agencies.EnCtoVr(make_pair(j, l), i);
-				else out << "  No edge btwn "<< j << " & " << l; 
-				out << endl;
+	// 			out << "-" << agencies.VnCtoVr(j, i) << " " << "-" << agencies.VnCtoVr(l, i);
+	// 			if(adjacency[j][l] == 1)
+	// 				out << " " << agencies.EnCtoVr(make_pair(j, l), i);
+	// 			else out << "  No edge btwn "<< j << " & " << l; 
+	// 			out << endl;
+	// 		}
+	// 	}
+	// }
+	// cout << "VVE DONE!"<<endl;
+	// //V ^ ~V => ~E
+	// for(int i =0; i < k; i++){
+
+	// 	for(int j =0 ; j < n; j++){
+
+	// 		for(int l = j+1; l < n; l++){
+
+	// 			out << "-" << agencies.VnCtoVr(j, i) << " " << agencies.VnCtoVr(l, i);
+	// 			if(adjacency[j][l] == 1)
+	// 				out << " -" << agencies.EnCtoVr(make_pair(j, l), i);
+	// 			out << endl;
+	// 		}
+	// 	}
+	// }
+	// cout << "V~VE DONE!"<<endl;
+	// int compVertexMapArray[k][n];
+	// for(int i = 0; i < k; i++){	
+	// 	for(int j = 0; j < n; j++){
+	// 		compVertexMapArray[i][j] = agencies.VnCtoVr(j, i) ;
+	// 	}
+	// }	
+
+
+	// ULTRA SLOW k*k*2^n
+	int sub[n];
+	int compVariables1[n];
+	int compVariables2[n];
+	double po = pow(2, n);
+	int subsetIndex[n];
+	long long int count = 0;
+	for(int comp = 0; comp < k; comp++){	
+		
+		for(int i = 0; i < n; i++)
+			compVariables1[i] = agencies.VnCtoVr(i, comp);
+		
+		cout << "***************************************COMPONENT NUMBER 1 = " << comp << endl;
+
+		for(int j = 0; j < k; j++){
+			if(comp != j){
+				for(int i = 0; i < n; i++)
+					compVariables2[i] = agencies.VnCtoVr(i, j);
+				
+				cout << "*******************COMPONENT NUMBER 2 = " << comp << endl;
+				
+				for(int i = 0; i < po; i++)
+				{
+					if(ceil(log2(po-i-1)) == floor(log2(po-i-1)))
+						continue;
+					subset(subsetIndex, n, i); // return a subset where the bits elements are 1.
+					//cout << "Subset with index i = " << i << endl;
+					for(int j = 0; j < n; j++){
+						//cout << compVariables1[j]*subsetIndex[j] << " ";
+					}
+					for(int j = 0; j < n; j++){
+						if(subsetIndex[j] == -1){
+							//cout << "-" << compVariables2[j] << " ";
+						}
+					}
+					//cout << endl;
+					count++;
+					if(count % 1000000 == 0 )
+						cout << count << endl;
+				}
+				
 			}
 		}
 	}
-	//V ^ ~V => ~E
-	for(int i =0; i < k; i++){
 
-		for(int j =0 ; j < n; j++){
 
-			for(int l = j+1; l < n; l++){
-
-				out << "-" << agencies.VnCtoVr(j, i) << " " << agencies.VnCtoVr(l, i);
-				if(adjacency[j][l] == 1)
-					out << " -" << agencies.EnCtoVr(make_pair(j, l), i);
-				out << endl;
-			}
-		}
-	}
-
+	cout << "total variables = " << k*n << "\nTotal clauses printed = " << count<< endl;
 	edges = NULL;
 	out.close();
 	return 0;
