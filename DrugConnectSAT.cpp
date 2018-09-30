@@ -307,6 +307,8 @@ int main(int argc, char* argv[]){
 	//close file
 	fout.close();
 
+
+	cout << "total variables = " << k*n << "\nTotal clauses printed = " << count<< endl;
 	edges = NULL;
 	return 0;
 }
