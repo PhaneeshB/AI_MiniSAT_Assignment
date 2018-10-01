@@ -85,6 +85,7 @@ void DrugConnect::addNotEmptyCliqueRestriction(){
 		for(i=0 ;i<this->n; i++){
 			for(j=i+1;j< this->n;j++){
 				if(adjacency[i][j] == true){
+					cout << "Edge btwn: "<< i << " " << j << endl;
 					v1 = Expr::intToString(VnCtoVr(i,comp));
 					v2 = Expr::intToString(VnCtoVr(j,comp));
 					//add cnf form....
@@ -105,8 +106,11 @@ void DrugConnect::addNotEmptyCliqueRestriction(){
 		clause[len-1] = '\0';
 		//convert clause to cnf form
 		vector<char*> clauses;
+		cout << "Before Get CNF\n"; 
 		ConvertingRules::getCNF(clause,clauses);
-		for(l=0;l<clauses.size();l++){
+		cout << "After Get CNF\n";
+		
+		for(l=0; l<clauses.size(); l++){
 			fout.write(clauses[l], strlen(clauses[l]));
 			fout<<" 0"<<endl;
 		}
@@ -257,9 +261,13 @@ int main(int argc, char* argv[]){
 	fin.close();
 
 	DrugConnect agencies(n,edges,m,k,outFilePath);
+	cout << "Adding vertex exist\n";
 	agencies.addVertexExistenceClauses();
+	cout << "Adding empty clique\n";
 	agencies.addNotEmptyCliqueRestriction();
+	cout << "Adding clique constraint\n";
 	agencies.addCliqueConstraint();
-	agencies.addMutualExclusionConstraint();
+	cout << "Done!\n";
+	//agencies.addMutualExclusionConstraint();
 	return 0;
 }

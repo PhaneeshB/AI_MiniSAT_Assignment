@@ -73,37 +73,34 @@ public:
 		return number;
 	}
 
-	char* getCNForm(){
-		char* result = NULL;
+	string getCNForm(){
+		
+		string result="";
+		
 		if(atom != 0){
-			return intToString(atom);
+			//cout << "Atom = " << atom << endl;
+			return string(intToString(atom));
 		}
-		if(oper == '-'){
-			char* temp = opd1->getCNForm();
-			result = new char[500];
-			char op[2]={oper,'\0'};
-			result[0]= '\0';
-			strcat(result,op);
-			strcat(result,temp);
-			//free Memory
-			delete[] temp;
-			temp = NULL;
+		if(oper == '+' || oper == '.') {
+			
+			//cout << "entered oper is +.\ngetting next cnf form for opd1\n";
+			
+			result = opd1->getCNForm();
+			
+			//cout << "entered oper is +.\ngot done with next cnf form for opd1\n";
+			//cout << "entered oper is +.\ngetting next cnf form for opd2\n";
+			//cout << "opd2 = " << opd2 << endl;
+			
+			string temp2 = opd2->getCNForm();
+			
+			//cout << "entered oper is +.\ngot done with next cnf form for opd2\n";
+			
+			//cout << "cretaed op with size 2\n";
+			result.push_back(oper);
+			result = result + temp2;
 		}
-		else if(oper != '\0') {
-			char* temp1= opd1->getCNForm();
-			char* temp2 = opd2->getCNForm();
-			result = new char[500];
-			char op[2] = {oper,'\0'};
-			result[0]= '\0';
-			strcat(result,temp1);
-			strcat(result,op);
-			strcat(result,temp2);
-			//free Memory
-			delete[] temp1;
-			temp1 = NULL;
-			delete[] temp2;
-			temp2 = NULL;
-		}
+		else cout << "The operator is not + . or - !!\n";
+
 		return result;
 
 	}
@@ -287,25 +284,31 @@ public:
 		Expr* expression = *expressionPTR;
 		if(expression!=NULL){
 			applyRule(expressionPTR);
-		}
-		if(expression->opd1!=NULL){
-			CNForm(&expression->opd1);
-		}
-		if(expression->opd2!=NULL){
-			CNForm(&expression->opd2);
+			if(expression->opd1!=NULL){
+				CNForm(&expression->opd1);
+			}
+			if(expression->opd2!=NULL){
+				CNForm(&expression->opd2);
+			}
 		}
 		expression = NULL;
 	}
 
 	static void applyDistributiveRule(Expr* expr){
 		if(expr!=NULL){
+			//cout << "Beofre dist rule\n";
 			distributiveRule(expr);
-		}
-		if(expr->opd1!=NULL){
-			applyDistributiveRule(expr->opd1);
-		}
-		if(expr->opd2!=NULL){
-			applyDistributiveRule(expr->opd2);
+			//cout << "After dist rule\n";
+			if(expr->opd1!=NULL){
+				//cout << "First not null\n";
+				applyDistributiveRule(expr->opd1);
+				//cout << "First done\n";
+			}
+			if(expr->opd2!=NULL){
+				//cout << "second not null\n";
+				applyDistributiveRule(expr->opd2);
+				//cout << "second done\n";
+			}
 		}
 	}
 
@@ -329,7 +332,7 @@ public:
 		if(expression->opd2 != NULL){
 			freeMemory(expression->opd2);
 		}
-		if(expression->opd1 ==NULL && expression->opd2 ==NULL){
+		if(expression->opd1 == NULL && expression->opd2 == NULL){
 			delete expression;
 			expression = NULL;
 		}
@@ -350,12 +353,23 @@ public:
 		//clear clauses
 		clauses.clear();
 		Expr* expression = CreateExpression::createExpr(dnf);
+		
+		//cout << "Expression created\n";
 
 		CNForm(&expression);
+		
+		//cout << "convereted to CNF\n";
+		
 		applyDistributiveRule(expression);
-		char* exp = expression->getCNForm();
 
-		unsigned int len = strlen(exp);
+		//cout << "distributiveRule applied\n";
+		//cout << "Get CNF FORM\n";
+		
+		string exp = expression->getCNForm();
+
+		//cout << "Got CNF FORM\n";
+
+		unsigned int len = exp.length();
 		char res[len+1];
 		for(unsigned int i=0;i<len;i++){
 			res[i]=exp[i];
@@ -369,9 +383,7 @@ public:
 			clauses.push_back(clause);
 		}
 
-		//Free Memory
-		delete[] exp;
-		exp= NULL;
+		
 		//freeMemory(expression);
 	}
 };
