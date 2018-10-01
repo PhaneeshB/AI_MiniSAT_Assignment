@@ -1,30 +1,8 @@
 #include "CnfConversion.cpp"
 #include <tr1/unordered_map>
 #include <fstream>
-#include<iostream>
+#include <cmath>
 
-template <class T>
-struct comparator
-{
-    bool operator()(const T& x, const T& y) const
-    { return strcmp(x, y) == 0; }
-};
-struct Hash_Code{
-    //BKDR hash algorithm
-    int operator()(char * str)const
-    {
-        int seed = 131;
-        int hash = 0;
-        while(*str)
-        {
-            hash = (hash * seed) + (*str);
-            str ++;
-        }
-
-        return hash & (0x7FFFFFFF);
-    }
-};
-typedef tr1::unordered_map<char*, unsigned int, Hash_Code ,comparator<char*> > unorderedMap;
 typedef pair<int,int> iPair;
 
 
@@ -33,39 +11,22 @@ public:
 	unsigned int n; //vertices count
 	unsigned int m; //edges count
 	unsigned int k; //cliques
-	iPair* edges;
-	unorderedMap edgeMap;
-	vector<char*> cnf;
 	bool** adjacency;
+	ofstream fout;
 
-	static char* edgeToString(iPair edge);
 	int VnCtoVr(int vertex,int component);
-	int EnCtoVr(iPair edge,int component);
-	pair<iPair,int> VrtoEnC(int);
-	iPair VrtoVnC(int);
 	void addVertexExistenceClauses();
-	void addEdgeExistenceClauses();
 	void addCliqueConstraint();
 	void addMutualExclusionConstraint();
+	void addNotEmptyCliqueRestriction();
+	void subset(int a[], int size, int num);
 
-	DrugConnect(unsigned int n,iPair* edges,unsigned int m,unsigned int k){
+	DrugConnect(unsigned int n,iPair* edges,unsigned int m,unsigned int k,char* filePath){
 		this->n = n;
 		this->m = m;
 		this->k =k;
-		this->edges =edges;
 
-		//sort each edge(u,v) and initialize edgeMap
-		int temp;
 		unsigned int i;
-		for(i=0;i<m;i++){
-			if((this->edges)[i].first > (this->edges)[i].second){
-				temp = (this->edges)[i].first;
-				(this->edges)[i].first = (this->edges)[i].second;
-				(this->edges)[i].second = temp;
-			}
-			edgeMap.insert(make_pair(edgeToString((this->edges)[i]), i));
-		}
-
 		//initialize adjacency matrix
 		adjacency = new bool* [this->n];
 		for(i=0;i<this->n;i++){
@@ -78,28 +39,13 @@ public:
 			edge = edges[i];
 			adjacency[edge.first][edge.second] = true;
 			adjacency[edge.second][edge.first] = true;
-
 		}
+
+		fout.open(filePath, ios::out);
+		fout<<"p cnf "<<this->n<<endl;
 	}
 	~DrugConnect(){
-		//Free map memory
-		unorderedMap:: iterator itr;
-		for (itr = edgeMap.begin(); itr != edgeMap.end(); itr++){
-			delete[] itr->first;
-			//tried making element NULL but failed..
-		}
-		//Delete Edges
-		if(edges!=NULL){
-			delete[] edges;
-			edges = NULL;
-		}
-
-		//Free cnf
 		unsigned int i;
-		for(i=0;i<cnf.size();i++){
-			delete[] cnf[i];
-			cnf[i] = NULL;
-		}
 		//Free Adjacency
 		for(i=0;i<this->n;i++){
 			delete[] adjacency[i];
@@ -108,114 +54,78 @@ public:
 		delete[] adjacency;
 		adjacency = NULL;
 
+		fout.close();
+
 	}
 };
 
-char* DrugConnect::edgeToString(iPair edge){
-
-	char* edgeStr = new char[22]; //(u,v) can be max of 22 size
-	char* val = Expr::Expr::intToString(edge.first);
-	strcpy(edgeStr,val);
-	strcat(edgeStr,",");
-
-	//Free Memory
-	delete[] val;
-
-	val= Expr::Expr::intToString(edge.second);
-	strcat(edgeStr,val);
-
-	//Free Memory
-	delete[] val;
-
-	return edgeStr;
-}
 int DrugConnect::VnCtoVr(int vertex,int component){
 	return k * vertex + component + 1;
 }
 
-int DrugConnect::EnCtoVr(iPair edge, int component){
-
-	char* edgeString = edgeToString(edge);
-	unsigned int edgeNum = (edgeMap.find(edgeString))->second;
-	//Free Memory
-	delete[] edgeString;
-	edgeString = NULL;
-
-	return edgeNum * this->k + component + 1;
-}
-
-iPair DrugConnect::VrtoVnC(int variable){
-
-	variable--;
-	int vertex = variable / this->k;
-	int component = variable % this->k;
-	return make_pair(vertex, component);
-}
-
-pair<iPair,int> DrugConnect::VrtoEnC(int variable){
-
-	int offset = this->k * this->n;
-	variable -= offset + 1;
-	int edgeNum  = variable / this->k;
-	int component = variable % this->k;
-	return make_pair((this->edges)[edgeNum], component);
-}
-
 void DrugConnect::addVertexExistenceClauses(){
 	//max 10 digit variable allowed
-	char* var = NULL;
-	char* clause = NULL;
 	unsigned int vertex,j;
 	for(vertex=0; vertex<this->n;vertex++){
-		clause = new char[11*this->k +1];
-		strcpy(clause,"");
 		for(j=0;j<this->k;j++){
-			var = Expr::intToString(VnCtoVr(vertex,j));
-			strcat(clause,var);
-			if(j!=this->k-1)
-				strcat(clause," ");
-
-			//Free edgeVar
-			delete[] var;
-			var = NULL;
+			fout<<VnCtoVr(vertex,j)<<" ";
 		}
-		cnf.push_back(clause);
+		fout<<"0"<<endl;
 	}
 }
 
-void DrugConnect::addEdgeExistenceClauses(){
-	char* edgeVar = NULL; //it is a variable
-	iPair edge;
-	char* clause = NULL;
-	unsigned int i,j;
-	for(i=0;i<this->m;i++){
-		edge = (this->edges)[i];
-		clause = new char[11*this->k +1];//max 10 digit variable allowed
-		strcpy(clause, "");
-		for(j=0;j<this->k;j++){
-			edgeVar = Expr::intToString(EnCtoVr(edge,k));
-			strcat(clause,edgeVar);
-			if(j!=this->k-1)
-				strcat(clause," ");
-
-			//Free edgeVar
-			delete[] edgeVar;
-			edgeVar = NULL;
-		}
-		cnf.push_back(clause);
-	}
-}
-
-void DrugConnect::addCliqueConstraint(){
-	unsigned int i,j,l,comp;
+void DrugConnect::addNotEmptyCliqueRestriction(){
+	unsigned int i,j,l,comp,len;
 	char* v1 =NULL;
 	char* v2 = NULL;
-	char* clause = NULL;
+	char clause[22*this->m+1];
+	//each clique must have atleast one edge
+	for(comp=0;comp<this->k;comp++){
+		strcpy(clause,"");
+		for(i=0 ;i<this->n; i++){
+			for(j=i+1;j< this->n;j++){
+				if(adjacency[i][j] == true){
+					v1 = Expr::intToString(VnCtoVr(i,comp));
+					v2 = Expr::intToString(VnCtoVr(j,comp));
+					//add cnf form....
+					strcat(clause, v1);
+					strcat(clause, ".");
+					strcat(clause, v2);
+					strcat(clause, "+");
+					//Free Memory
+					delete[] v1;
+					delete[] v2;
+					v1= NULL;
+					v2 = NULL;
+				}
+			}
+		}
+		//remove extra + from the end;
+		len = strlen(clause);
+		clause[len-1] = '\0';
+		//convert clause to cnf form
+		vector<char*> clauses;
+		ConvertingRules::getCNF(clause,clauses);
+		for(l=0;l<clauses.size();l++){
+			fout.write(clauses[l], strlen(clauses[l]));
+			fout<<" 0"<<endl;
+		}
+		//Free memory
+		for(l=0;l<clauses.size();l++){
+			delete[] clauses[l];
+			clauses[l]=NULL;
+		}
+	}
+}
+void DrugConnect::addCliqueConstraint(){
+	unsigned int i,j,l,comp,len;
+	char* v1 =NULL;
+	char* v2 = NULL;
+	char clause[22*k+1];
 	for(i=0 ;i<this->n; i++){
 		for(j=i+1;j< this->n;j++){
 			if(adjacency[i][j] == true){
 				//this edge must be present in atleast one clique
-				clause = new char[22*k+1];
 				strcpy(clause,"");
 				for(comp=0;comp<this->k;comp++){
 					v1 = Expr::intToString(VnCtoVr(i,comp));
@@ -224,8 +134,7 @@ void DrugConnect::addCliqueConstraint(){
 					strcat(clause, v1);
 					strcat(clause, ".");
 					strcat(clause, v2);
-					if(comp!=this->k-1)
-						strcat(clause, "+");
+					strcat(clause, "+");
 
 					//Free Memory
 					delete[] v1;
@@ -233,34 +142,27 @@ void DrugConnect::addCliqueConstraint(){
 					v1= NULL;
 					v2 = NULL;
 				}
+				//remove extra + from the end;
+				len = strlen(clause);
+				clause[len-1] = '\0';
 				//convert clause to cnf form
 				vector<char*> clauses;
 				ConvertingRules::getCNF(clause,clauses);
 				for(l=0;l<clauses.size();l++){
-					cnf.push_back(clauses[l]);
+					fout.write(clauses[l], strlen(clauses[l]));
+					fout<<" 0"<<endl;
 				}
-
-				//Free clause
-				delete[] clause;
-				clause = NULL;
+				//Free memory
+				for(l=0;l<clauses.size();l++){
+					delete[] clauses[l];
+					clauses[l]=NULL;
+				}
 			}
 			else{
 				//~Edge -> ~(V1.V2)
 				for(comp=0;comp<this->k;comp++){
-					clause = new char[25];
-					v1 = Expr::intToString(VnCtoVr(i,comp));
-					v2 = Expr::intToString(VnCtoVr(j,comp));
-					strcpy(clause, "-");
-					strcat(clause, v1);
-					strcat(clause, " ");
-					strcat(clause, "-");
-					strcat(clause, v2);
-					cnf.push_back(clause);
-					//Free Memory
-					delete[] v1;
-					delete[] v2;
-					v1= NULL;
-					v2 = NULL;
+					fout<<"-"<<VnCtoVr(i,comp)<<" ";
+					fout<<"-"<<VnCtoVr(j,comp)<<" 0"<<endl;
 				}
 			}
 		}
@@ -269,10 +171,74 @@ void DrugConnect::addCliqueConstraint(){
 
 void DrugConnect::addMutualExclusionConstraint(){
 
+	int compVariables1[n];
+	int compVariables2[n];
+	double po = pow(2, n);
+	int subsetIndex[n];
+	long long int count = 0;
+	unsigned int i,j,comp;
+
+	for(comp = 0; comp < k; comp++){
+
+		for(i = 0; i < n; i++)
+			compVariables1[i] = VnCtoVr(i, comp);
+
+		cout << "***************************************COMPONENT NUMBER 1 = " << comp << endl;
+
+		for(j = 0; j < k; j++){
+			if(comp != j){
+				for(i = 0; i < n; i++)
+					compVariables2[i] = VnCtoVr(i, j);
+
+				cout << "*******************COMPONENT NUMBER 2 = " << comp << endl;
+
+				for(int i = 0; i < po; i++)
+				{
+					if(ceil(log2(po-i-1)) == floor(log2(po-i-1)))
+						continue;
+					subset(subsetIndex, n, i); // return a subset where the bits elements are 1.
+					cout << "Subset with index i = " << i << endl;
+					for(j = 0; j < n; j++){
+						fout << compVariables1[j]*subsetIndex[j] << " ";
+					}
+					for(j = 0; j < n; j++){
+						if(subsetIndex[j] == -1){
+							fout << "-" << compVariables2[j] << " ";
+						}
+					}
+					fout <<"0"<<endl;
+					count++;
+					if(count % 1000000 == 0 )
+						cout << count << endl;
+				}
+
+			}
+		}
+	}
+	cout << "total variables = " << k*n << "\nTotal clauses printed = " << count<< endl;
 }
+
+void DrugConnect::subset(int a[], int size, int num) {
+    for(int k=0; k<size; k++){
+        //if the k-th bit is set in num
+        if( (1<<k) & num)
+            a[size-k-1] = 1;
+        else
+        	a[size-k-1] = -1;
+    }
+}
+
 int main(int argc, char* argv[]){
 
-	ifstream fin("test.graph");
+	int len = strlen(argv[1]);
+	char inFilePath[len+10];
+	char outFilePath[len+10];
+	strcpy(inFilePath,argv[1]);
+	strcat(inFilePath,".graph");
+	strcpy(outFilePath,argv[1]);
+	strcat(outFilePath,".satinput");
+
+	ifstream fin(inFilePath);
 	if(!fin){
 		cout<<"Error opening File. Exiting.";
 		return 1;
@@ -281,7 +247,7 @@ int main(int argc, char* argv[]){
 	fin>>n>>m>>k;
 
 	//Assuming no repeated edges are there
-	iPair* edges = new iPair[m];
+	iPair edges[m];
 	for(int i=0;i<m;i++){
 		fin>>x;
 		fin>>y;
@@ -290,25 +256,10 @@ int main(int argc, char* argv[]){
 	//close the file
 	fin.close();
 
-	DrugConnect agencies(n,edges,m,k);
+	DrugConnect agencies(n,edges,m,k,outFilePath);
 	agencies.addVertexExistenceClauses();
+	agencies.addNotEmptyCliqueRestriction();
 	agencies.addCliqueConstraint();
 	agencies.addMutualExclusionConstraint();
-
-	//Write cnf into a file
-	ofstream fout("test.satinput");
-	if(!fout){
-		cout<<"Error opening File. Exiting.";
-		return 1;
-	}
-	for(unsigned int i=0;i<(agencies.cnf).size();i++){
-		fout<<(agencies.cnf)[i]<<endl;
-	}
-	//close file
-	fout.close();
-
-	edges = NULL;
 	return 0;
 }
-
-

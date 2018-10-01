@@ -4,13 +4,7 @@
  *  Created on: 30-Sep-2018
  *      Author: gaurav
  */
-
-/*
- * expression.cpp
- *
- *  Created on: 07-Sep-2018
- *      Author: gaurav
- */
+#include <iostream>
 #include <stack>
 #include <cstring>
 #include <vector>
@@ -341,38 +335,43 @@ public:
 		}
 	}
 
-	static char* replace(char* str, char old, char newOne)
+	static void replace(char* str, char old, char newOne)
 	{
-		char* res= new char[strlen(str)+1];
 		int i=0;
-		while(*str!='\0')
+		while(*(str+i)!='\0')
 		{
-			if(*str==old){
-				res[i]=newOne;
+			if(*(str+i)==old){
+				str[i]=newOne;
 			}
-			else{
-				res[i]=*str;
-			}
-			str++;
 			i++;
 		}
-		res[i]='\0';
-		return res;
 	}
 	static void getCNF(char* dnf, vector<char*>& clauses){
+		//clear clauses
+		clauses.clear();
 		Expr* expression = CreateExpression::createExpr(dnf);
 
 		CNForm(&expression);
 		applyDistributiveRule(expression);
-		char* res = expression->getCNForm();
+		char* exp = expression->getCNForm();
+
+		unsigned int len = strlen(exp);
+		char res[len+1];
+		for(unsigned int i=0;i<len;i++){
+			res[i]=exp[i];
+		}
+		res[len]='\0';
 		vector<char*> terms = tokenize(res,".");
 		for(unsigned int i=0;i<terms.size();i++){
-			clauses.push_back(replace(terms[i],'+',' '));
+			replace(terms[i],'+',' ');
+			char* clause = new char[len];
+			strcpy(clause,terms[i]);
+			clauses.push_back(clause);
 		}
 
 		//Free Memory
-		delete[] res;
-		res= NULL;
+		delete[] exp;
+		exp= NULL;
 		//freeMemory(expression);
 	}
 };
