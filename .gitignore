@@ -28,3 +28,7 @@ test\.satinput
 2018MCS2141_2018MCS2014/writeup\.txt
 
 testCaseGen\.cpp
+
+*.graph
+
+genTestCase
