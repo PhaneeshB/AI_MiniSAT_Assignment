@@ -19,6 +19,18 @@ testpart2\.cpp
 
 3
 
+DrugConnect
+
+minisat
+
+output
+
+*.satinput
+
+*.satoutput
+
+*.subgraphs
+
 drug
 
 genTestGraph
