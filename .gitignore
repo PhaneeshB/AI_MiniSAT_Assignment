@@ -18,3 +18,17 @@ output\.Subgraphs
 testpart2\.cpp
 
 3
+
+DrugConnect
+
+minisat
+
+output
+
+*.graph
+
+*.satinput
+
+*.satoutput
+
+*.subgraphs
